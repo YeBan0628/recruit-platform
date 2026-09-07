@@ -34,3 +34,6 @@ Thumbs.db
 # ===== 上传文件/临时文件 =====
 upload/
 *.tmp
+
+# ===== Docker 数据卷 =====
+docker-data/

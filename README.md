@@ -4,10 +4,10 @@
 
 ## 技术栈
 
-- **语言/运行时**：JDK 21
-- **基础框架**：Spring Boot 3.5.x、MyBatis-Plus
+- **语言/运行时**：JDK 17
+- **基础框架**：Spring Boot 3.2.x、MyBatis-Plus
 - **微服务**：Spring Cloud Alibaba 2023.x（Nacos、Sentinel）、Spring Cloud Gateway、OpenFeign
-- **存储/中间件**：MySQL 8、Redis 7（含 Redis Stack 向量）、RocketMQ 5、MinIO
+- **存储/中间件**：MySQL 8、Redis、RocketMQ 5.5、MinIO（预留）
 - **鉴权**：Sa-Token
 - **AI**：Spring AI 1.x + Spring AI Alibaba（通义千问）
 
