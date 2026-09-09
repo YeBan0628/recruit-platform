@@ -25,6 +25,7 @@
         <module>auth</module>
         <module>user</module>
         <module>position</module>
+        <module>resume</module>
     </modules>
 
     <properties>

@@ -22,3 +22,7 @@ spring:
           uri: lb://position-service
           predicates:
             - Path=/position/**
+        - id: resume-service
+          uri: lb://resume-service
+          predicates:
+            - Path=/resume/**
