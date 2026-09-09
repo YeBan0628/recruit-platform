@@ -24,6 +24,7 @@
         <module>gateway</module>
         <module>auth</module>
         <module>user</module>
+        <module>position</module>
     </modules>
 
     <properties>
