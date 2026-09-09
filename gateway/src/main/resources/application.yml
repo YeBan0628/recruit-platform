@@ -26,3 +26,7 @@ spring:
           uri: lb://resume-service
           predicates:
             - Path=/resume/**
+        - id: delivery-service
+          uri: lb://delivery-service
+          predicates:
+            - Path=/delivery/**

@@ -26,6 +26,7 @@
         <module>user</module>
         <module>position</module>
         <module>resume</module>
+        <module>delivery</module>
     </modules>
 
     <properties>
