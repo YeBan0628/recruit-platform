@@ -2,6 +2,7 @@ package com.recruit.delivery.service;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.recruit.api.delivery.DeliverySubmittedEvent;
+import com.recruit.api.delivery.DeliveryStatusChangedEvent;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.recruit.api.position.PositionApi;
@@ -117,8 +118,10 @@ public class DeliveryService {
         if (isTerminal(delivery.getStatus())) {
             throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "该投递已结束，不能继续流转");
         }
+        Integer oldStatus = delivery.getStatus();
         delivery.setStatus(request.getStatus());
         deliveryMapper.updateById(delivery);
+        publishStatusChanged(delivery, position, oldStatus, request.getStatus(), currentUserId());
     }
 
     @Transactional
@@ -130,8 +133,11 @@ public class DeliveryService {
         if (isTerminal(delivery.getStatus())) {
             throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "该投递已结束，不能撤回");
         }
+        Integer oldStatus = delivery.getStatus();
+        PositionDTO position = getPosition(delivery.getPositionId());
         delivery.setStatus(5);
         deliveryMapper.updateById(delivery);
+        publishStatusChanged(delivery, position, oldStatus, 5, currentUserId());
     }
 
     private PositionDTO getPosition(Long positionId) {
@@ -180,6 +186,21 @@ public class DeliveryService {
         } catch (Exception e) {
             log.warn("增加职位投递热度失败，positionId={}", positionId, e);
         }
+    }
+
+    private void publishStatusChanged(Delivery delivery, PositionDTO position,
+                                      Integer oldStatus, Integer newStatus, Long operatorId) {
+        DeliveryStatusChangedEvent event = new DeliveryStatusChangedEvent();
+        event.setEventId(java.util.UUID.randomUUID().toString());
+        event.setDeliveryId(delivery.getId());
+        event.setPositionId(delivery.getPositionId());
+        event.setApplicantId(delivery.getApplicantId());
+        event.setRecruiterId(position.getUserId());
+        event.setOperatorId(operatorId);
+        event.setOldStatus(oldStatus);
+        event.setNewStatus(newStatus);
+        rocketMQTemplate.syncSend("delivery-status-changed", MessageBuilder.withPayload(event)
+                .setHeader("KEYS", String.valueOf(delivery.getId())).build());
     }
 
     private void validatePage(Long page, Long size) {
