@@ -3,7 +3,7 @@ package com.recruit.user.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.recruit.api.user.UserApi;
 import com.recruit.api.user.UserCreateRequest;
-import com.recruit.api.user.UserDTO;
+import com.recruit.api.user.InternalUserDTO;
 import com.recruit.common.result.Result;
 import com.recruit.common.util.PasswordUtil;
 import com.recruit.user.entity.User;
@@ -39,14 +39,14 @@ public class UserController implements UserApi {
     }
 
     @Override
-    @GetMapping("/user/phone/{phone}")
-    public Result<UserDTO> getByPhone(@PathVariable("phone") String phone) {
+    @GetMapping("/internal/user/phone/{phone}")
+    public Result<InternalUserDTO> getByPhone(@PathVariable("phone") String phone) {
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
         if (user == null) {
             return Result.success(null);
         }
-        UserDTO dto = new UserDTO();
+        InternalUserDTO dto = new InternalUserDTO();
         BeanUtils.copyProperties(user, dto);
         return Result.success(dto);
     }

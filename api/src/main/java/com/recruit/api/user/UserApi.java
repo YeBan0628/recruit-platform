@@ -16,6 +16,6 @@ public interface UserApi {
     @PostMapping("/user")
     Result<Long> create(@RequestBody UserCreateRequest request);
 
-    @GetMapping("/user/phone/{phone}")
-    Result<UserDTO> getByPhone(@PathVariable("phone") String phone);
+    @GetMapping("/internal/user/phone/{phone}")
+    Result<InternalUserDTO> getByPhone(@PathVariable("phone") String phone);
 }

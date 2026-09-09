@@ -3,7 +3,7 @@ package com.recruit.auth.service;
 import cn.dev33.satoken.stp.StpUtil;
 import com.recruit.api.user.UserApi;
 import com.recruit.api.user.UserCreateRequest;
-import com.recruit.api.user.UserDTO;
+import com.recruit.api.user.InternalUserDTO;
 import com.recruit.auth.dto.LoginRequest;
 import com.recruit.auth.dto.RegisterRequest;
 import com.recruit.common.exception.BusinessException;
@@ -59,8 +59,8 @@ public class AuthService {
      * 登录：Feign 查用户 → 校验密码 → Sa-Token 发 token
      */
     public String login(LoginRequest request) {
-        Result<UserDTO> result = userApi.getByPhone(request.getPhone());
-        UserDTO user = result.getData();
+        Result<InternalUserDTO> result = userApi.getByPhone(request.getPhone());
+        InternalUserDTO user = result.getData();
         if (user == null || !PasswordUtil.matches(request.getPassword(), user.getPassword())) {
             throw new BusinessException("账号或密码错误");
         }
