@@ -1,6 +1,7 @@
 package com.recruit.delivery.service;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.recruit.api.delivery.DeliverySubmittedEvent;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.recruit.api.position.PositionApi;
@@ -14,6 +15,8 @@ import com.recruit.delivery.entity.Delivery;
 import com.recruit.delivery.mapper.DeliveryMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +26,7 @@ public class DeliveryService {
 
     private final DeliveryMapper deliveryMapper;
     private final PositionApi positionApi;
+    private final RocketMQTemplate rocketMQTemplate;
 
     @Transactional
     public Long create(DeliveryCreateRequest request) {
@@ -45,6 +49,14 @@ public class DeliveryService {
         delivery.setApplicantId(applicantId);
         delivery.setStatus(0);
         deliveryMapper.insert(delivery);
+        DeliverySubmittedEvent event = new DeliverySubmittedEvent();
+        event.setEventId(java.util.UUID.randomUUID().toString());
+        event.setDeliveryId(delivery.getId());
+        event.setPositionId(position.getId());
+        event.setApplicantId(applicantId);
+        event.setRecruiterId(position.getUserId());
+        rocketMQTemplate.syncSend("delivery-submitted", MessageBuilder.withPayload(event)
+                .setHeader("KEYS", String.valueOf(delivery.getId())).build());
         return delivery.getId();
     }
 

@@ -25,3 +25,7 @@ sa-token:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
+rocketmq:
+  name-server: ${ROCKETMQ_NAMESRV:127.0.0.1:9876}
+  producer:
+    group: delivery-producer-group

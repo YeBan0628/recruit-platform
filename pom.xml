@@ -27,6 +27,7 @@
         <module>position</module>
         <module>resume</module>
         <module>delivery</module>
+        <module>notification</module>
     </modules>
 
     <properties>
@@ -35,6 +36,7 @@
         <spring-cloud-alibaba.version>2023.0.1.0</spring-cloud-alibaba.version>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <sa-token.version>1.39.0</sa-token.version>
+        <rocketmq-spring.version>2.3.2</rocketmq-spring.version>
     </properties>
 
     <dependencyManagement>
@@ -67,6 +69,11 @@
                 <groupId>cn.dev33</groupId>
                 <artifactId>sa-token-redis-jackson</artifactId>
                 <version>${sa-token.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-spring-boot-starter</artifactId>
+                <version>${rocketmq-spring.version}</version>
             </dependency>
             <!-- 内部模块 -->
             <dependency>
