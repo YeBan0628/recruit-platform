@@ -5,6 +5,7 @@ import com.recruit.resume.dto.EducationRequest;
 import com.recruit.resume.dto.ProjectRequest;
 import com.recruit.resume.dto.ResumeDetailResponse;
 import com.recruit.resume.dto.ResumeSaveRequest;
+import com.recruit.resume.dto.MatchResult;
 import com.recruit.resume.dto.SkillRequest;
 import com.recruit.resume.dto.WorkRequest;
 import com.recruit.resume.service.ResumeService;
@@ -25,6 +26,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class ResumeController {
 
     private final ResumeService resumeService;
+    private final com.recruit.resume.service.DeepSeekMatchService deepSeekMatchService;
+
+    @PostMapping("/match/{positionId}")
+    public Result<MatchResult> match(@PathVariable Long positionId) {
+        return Result.success(deepSeekMatchService.match(positionId));
+    }
 
     @PostMapping
     public Result<Long> create(@Valid @RequestBody ResumeSaveRequest request) {

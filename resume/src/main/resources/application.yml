@@ -28,3 +28,10 @@ sa-token:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
+
+recruit:
+  ai:
+    enabled: ${RECRUIT_AI_ENABLED:false}
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    model: ${DEEPSEEK_MODEL:deepseek-chat}
