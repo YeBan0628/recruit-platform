@@ -107,9 +107,10 @@ public class DeliveryService {
     @Transactional
     public void updateStatus(Long id, DeliveryStatusRequest request) {
         validateStatus(request.getStatus());
+        Long operatorId = currentUserId();
         Delivery delivery = getDelivery(id);
         PositionDTO position = getPosition(delivery.getPositionId());
-        if (!currentUserId().equals(position.getUserId())) {
+        if (!operatorId.equals(position.getUserId())) {
             throw new BusinessException(ResultCode.FORBIDDEN);
         }
         if (request.getStatus() == 0 || request.getStatus() == 5) {
@@ -118,10 +119,13 @@ public class DeliveryService {
         if (isTerminal(delivery.getStatus())) {
             throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "该投递已结束，不能继续流转");
         }
+        if (!isValidTransition(delivery.getStatus(), request.getStatus())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "不允许的投递状态流转");
+        }
         Integer oldStatus = delivery.getStatus();
         delivery.setStatus(request.getStatus());
         deliveryMapper.updateById(delivery);
-        publishStatusChanged(delivery, position, oldStatus, request.getStatus(), currentUserId());
+        publishStatusChanged(delivery, position, oldStatus, request.getStatus(), operatorId);
     }
 
     @Transactional
@@ -217,5 +221,17 @@ public class DeliveryService {
 
     private boolean isTerminal(Integer status) {
         return status != null && (status == 3 || status == 4 || status == 5);
+    }
+
+    static boolean isValidTransition(Integer currentStatus, Integer targetStatus) {
+        if (currentStatus == null || targetStatus == null) {
+            return false;
+        }
+        return switch (currentStatus) {
+            case 0 -> targetStatus == 1 || targetStatus == 2 || targetStatus == 3 || targetStatus == 4;
+            case 1 -> targetStatus == 2 || targetStatus == 3 || targetStatus == 4;
+            case 2 -> targetStatus == 3 || targetStatus == 4;
+            default -> false;
+        };
     }
 }
