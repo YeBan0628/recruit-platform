@@ -14,50 +14,75 @@ import com.recruit.delivery.dto.DeliveryStatusRequest;
 import com.recruit.delivery.entity.Delivery;
 import com.recruit.delivery.mapper.DeliveryMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DeliveryService {
 
     private final DeliveryMapper deliveryMapper;
     private final PositionApi positionApi;
     private final RocketMQTemplate rocketMQTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
+
+    private static final String LOCK_KEY_PREFIX = "delivery:lock:";
+    private static final String HOT_KEY = "position:hot:score";
+    private static final Duration LOCK_TTL = Duration.ofSeconds(10);
 
     @Transactional
     public Long create(DeliveryCreateRequest request) {
         Long applicantId = currentUserId();
-        PositionDTO position = getPosition(request.getPositionId());
-        if (!Integer.valueOf(1).equals(position.getStatus())) {
-            throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "该职位暂未上架");
+        String lockKey = LOCK_KEY_PREFIX + applicantId + ":" + request.getPositionId();
+        Boolean lockAcquired = tryAcquireLock(lockKey);
+        if (Boolean.FALSE.equals(lockAcquired)) {
+            throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "请勿重复提交");
         }
-        if (applicantId.equals(position.getUserId())) {
-            throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "不能投递自己发布的职位");
-        }
-        Delivery exists = deliveryMapper.selectOne(new LambdaQueryWrapper<Delivery>()
-                .eq(Delivery::getPositionId, request.getPositionId())
-                .eq(Delivery::getApplicantId, applicantId));
-        if (exists != null) {
+        try {
+            PositionDTO position = getPosition(request.getPositionId());
+            if (!Integer.valueOf(1).equals(position.getStatus())) {
+                throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "该职位暂未上架");
+            }
+            if (applicantId.equals(position.getUserId())) {
+                throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "不能投递自己发布的职位");
+            }
+            Delivery exists = deliveryMapper.selectOne(new LambdaQueryWrapper<Delivery>()
+                    .eq(Delivery::getPositionId, request.getPositionId())
+                    .eq(Delivery::getApplicantId, applicantId));
+            if (exists != null) {
+                throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "不能重复投递该职位");
+            }
+            Delivery delivery = new Delivery();
+            BeanUtils.copyProperties(request, delivery);
+            delivery.setApplicantId(applicantId);
+            delivery.setStatus(0);
+            deliveryMapper.insert(delivery);
+            DeliverySubmittedEvent event = new DeliverySubmittedEvent();
+            event.setEventId(java.util.UUID.randomUUID().toString());
+            event.setDeliveryId(delivery.getId());
+            event.setPositionId(position.getId());
+            event.setApplicantId(applicantId);
+            event.setRecruiterId(position.getUserId());
+            rocketMQTemplate.syncSend("delivery-submitted", MessageBuilder.withPayload(event)
+                    .setHeader("KEYS", String.valueOf(delivery.getId())).build());
+            increaseHotScore(position.getId(), 5D);
+            return delivery.getId();
+        } catch (DuplicateKeyException e) {
             throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "不能重复投递该职位");
+        } finally {
+            if (Boolean.TRUE.equals(lockAcquired)) {
+                releaseLock(lockKey);
+            }
         }
-        Delivery delivery = new Delivery();
-        BeanUtils.copyProperties(request, delivery);
-        delivery.setApplicantId(applicantId);
-        delivery.setStatus(0);
-        deliveryMapper.insert(delivery);
-        DeliverySubmittedEvent event = new DeliverySubmittedEvent();
-        event.setEventId(java.util.UUID.randomUUID().toString());
-        event.setDeliveryId(delivery.getId());
-        event.setPositionId(position.getId());
-        event.setApplicantId(applicantId);
-        event.setRecruiterId(position.getUserId());
-        rocketMQTemplate.syncSend("delivery-submitted", MessageBuilder.withPayload(event)
-                .setHeader("KEYS", String.valueOf(delivery.getId())).build());
-        return delivery.getId();
     }
 
     public Page<Delivery> listMine(Long page, Long size) {
@@ -130,6 +155,31 @@ public class DeliveryService {
             throw new BusinessException(ResultCode.UNAUTHORIZED);
         }
         return StpUtil.getLoginIdAsLong();
+    }
+
+    private Boolean tryAcquireLock(String key) {
+        try {
+            return stringRedisTemplate.opsForValue().setIfAbsent(key, "1", LOCK_TTL);
+        } catch (Exception e) {
+            log.warn("获取投递幂等锁失败，降级数据库防重，key={}", key, e);
+            return null;
+        }
+    }
+
+    private void releaseLock(String key) {
+        try {
+            stringRedisTemplate.delete(key);
+        } catch (Exception e) {
+            log.warn("释放投递幂等锁失败，key={}", key, e);
+        }
+    }
+
+    private void increaseHotScore(Long positionId, double score) {
+        try {
+            stringRedisTemplate.opsForZSet().incrementScore(HOT_KEY, String.valueOf(positionId), score);
+        } catch (Exception e) {
+            log.warn("增加职位投递热度失败，positionId={}", positionId, e);
+        }
     }
 
     private void validatePage(Long page, Long size) {
