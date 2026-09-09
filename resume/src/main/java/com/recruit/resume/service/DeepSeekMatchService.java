@@ -1,6 +1,5 @@
 package com.recruit.resume.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.recruit.api.position.PositionApi;
 import com.recruit.api.position.PositionDTO;
@@ -14,15 +13,16 @@ import com.recruit.resume.entity.ResumeProject;
 import com.recruit.resume.entity.ResumeSkill;
 import com.recruit.resume.entity.ResumeWork;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.ChatClient;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -31,29 +31,26 @@ public class DeepSeekMatchService {
     private final ResumeService resumeService;
     private final PositionApi positionApi;
     private final ObjectMapper objectMapper;
-    private final RestClient restClient;
+    private final Optional<ChatClient> chatClient;
     private final String apiKey;
-    private final String model;
     private final boolean enabled;
 
     public DeepSeekMatchService(ResumeService resumeService,
                                 PositionApi positionApi,
                                 ObjectMapper objectMapper,
-                                @Value("${recruit.ai.base-url:https://api.deepseek.com}") String baseUrl,
+                                Optional<ChatClient> chatClient,
                                 @Value("${recruit.ai.api-key:}") String apiKey,
-                                @Value("${recruit.ai.model:deepseek-chat}") String model,
                                 @Value("${recruit.ai.enabled:false}") boolean enabled) {
         this.resumeService = resumeService;
         this.positionApi = positionApi;
         this.objectMapper = objectMapper;
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+        this.chatClient = chatClient;
         this.apiKey = apiKey;
-        this.model = model;
         this.enabled = enabled;
     }
 
     public MatchResult match(Long positionId) {
-        if (!enabled || apiKey == null || apiKey.isBlank()) {
+        if (!enabled || apiKey == null || apiKey.isBlank() || chatClient.isEmpty()) {
             throw new BusinessException(ResultCode.ERROR.getCode(), "AI 匹配暂未配置");
         }
         ResumeDetailResponse resume = resumeService.getMine();
@@ -63,20 +60,11 @@ public class DeepSeekMatchService {
         }
         String prompt = buildPrompt(resume, positionResult.getData());
         try {
-            Map<String, Object> request = new HashMap<>();
-            request.put("model", model);
-            request.put("temperature", 0.2);
-            request.put("messages", List.of(
-                    Map.of("role", "system", "content", "你是专业招聘顾问，只能输出合法 JSON，不要输出 Markdown。"),
-                    Map.of("role", "user", "content", prompt)));
-            JsonNode response = restClient.post()
-                    .uri("/chat/completions")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .header("Authorization", "Bearer " + apiKey)
-                    .body(request)
-                    .retrieve()
-                    .body(JsonNode.class);
-            return parseResult(response);
+            String content = chatClient.orElseThrow().call(new Prompt(List.of(
+                            new SystemMessage("你是专业招聘顾问，只能输出合法 JSON，不要输出 Markdown。"),
+                            new UserMessage(prompt))))
+                    .getResult().getOutput().getContent();
+            return parseResult(content);
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -118,11 +106,7 @@ public class DeepSeekMatchService {
         return prompt.toString();
     }
 
-    MatchResult parseResult(JsonNode response) {
-        if (response == null || !response.has("choices") || response.get("choices").isEmpty()) {
-            throw new BusinessException(ResultCode.ERROR.getCode(), "AI 返回结果为空");
-        }
-        String content = response.at("/choices/0/message/content").asText(null);
+    MatchResult parseResult(String content) {
         if (content == null || content.isBlank()) {
             throw new BusinessException(ResultCode.ERROR.getCode(), "AI 返回结果为空");
         }

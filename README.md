@@ -9,7 +9,24 @@
 - **微服务**：Spring Cloud Alibaba 2023.x（Nacos、Sentinel）、Spring Cloud Gateway、OpenFeign
 - **存储/中间件**：MySQL 8、Redis、RocketMQ 5.5、MinIO（预留）
 - **鉴权**：Sa-Token
-- **AI**：Spring AI 1.x + Spring AI Alibaba（通义千问）
+- **AI**：Spring AI 0.8.1 + DeepSeek（兼容 Spring Boot 3.2.5）
+
+## DeepSeek 职位匹配
+
+`resume-service` 已通过 Spring AI `ChatClient` 接入 DeepSeek。启动前在当前 PowerShell 会话设置：
+
+```powershell
+$env:RECRUIT_AI_ENABLED="true"
+$env:DEEPSEEK_API_KEY="你的 DeepSeek API Key"
+```
+
+可选配置：`DEEPSEEK_BASE_URL`，默认 `https://api.deepseek.com`；`DEEPSEEK_MODEL`，默认 `deepseek-chat`。密钥只通过环境变量传入，不写入配置文件和 Git。
+
+匹配接口：
+
+```text
+POST /resume/match/{positionId}
+```
 
 ## 架构
 

@@ -49,7 +49,8 @@ local 配置只保留环境变量占位符；没有密钥时不影响其他服�
 
 ## 6. 依赖与兼容
 
-- 仅 resume-service 增加 Spring AI 依赖，不新增微服务。
+- 使用与 Spring Boot 3.2.5 兼容的 Spring AI 0.8.1，通过官方 Spring Milestones 仓库解析依赖。
+- 仅 resume-service 增加 Spring AI OpenAI Starter，不新增微服务。
 - 复用现有 PositionApi 和 resume-service 内部数据，不修改数据库结构。
 - Gateway 增加 `/resume/**` 路由无需变更。
 

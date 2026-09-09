@@ -4,6 +4,15 @@ server:
 spring:
   application:
     name: resume-service
+  ai:
+    openai:
+      api-key: ${DEEPSEEK_API_KEY:missing}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      chat:
+        enabled: ${RECRUIT_AI_ENABLED:false}
+        options:
+          model: ${DEEPSEEK_MODEL:deepseek-chat}
+          temperature: 0.2
   cloud:
     nacos:
       discovery:
@@ -33,5 +42,3 @@ recruit:
   ai:
     enabled: ${RECRUIT_AI_ENABLED:false}
     api-key: ${DEEPSEEK_API_KEY:}
-    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
-    model: ${DEEPSEEK_MODEL:deepseek-chat}
