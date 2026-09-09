@@ -2,6 +2,7 @@ package com.recruit.common.exception;
 
 import com.recruit.common.result.Result;
 import com.recruit.common.result.ResultCode;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -14,6 +15,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public Result<Void> handleBusinessException(BusinessException e) {
         return Result.fail(e.getCode(), e.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Result<Void> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+        if (e.getBindingResult().getFieldError() != null) {
+            return Result.fail(ResultCode.BAD_REQUEST.getCode(),
+                    e.getBindingResult().getFieldError().getDefaultMessage());
+        }
+        return Result.fail(ResultCode.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)

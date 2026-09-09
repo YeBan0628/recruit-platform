@@ -8,11 +8,22 @@ spring:
     nacos:
       discovery:
         server-addr: 127.0.0.1:8848
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: ${REDIS_PASSWORD:}
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/recruit?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: ${MYSQL_PASSWORD:}
+
+sa-token:
+  token-name: token
+  timeout: 2592000
+  is-share: false
+  token-style: uuid
 
 mybatis-plus:
   configuration:
