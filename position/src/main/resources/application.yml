@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: position-service
+  config:
+    import: optional:classpath:application-local.yml
   cloud:
     nacos:
       discovery:

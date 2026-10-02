@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: resume-service
+  config:
+    import: optional:classpath:application-local.yml
   ai:
     openai:
       api-key: ${DEEPSEEK_API_KEY:missing}
