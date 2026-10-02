@@ -1,10 +1,14 @@
 package com.recruit.user.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import cn.dev33.satoken.stp.StpUtil;
 import com.recruit.api.user.UserApi;
 import com.recruit.api.user.UserCreateRequest;
 import com.recruit.api.user.InternalUserDTO;
+import com.recruit.api.user.UserDTO;
+import com.recruit.common.exception.BusinessException;
 import com.recruit.common.result.Result;
+import com.recruit.common.result.ResultCode;
 import com.recruit.common.util.PasswordUtil;
 import com.recruit.user.entity.User;
 import com.recruit.user.mapper.UserMapper;
@@ -47,6 +51,23 @@ public class UserController implements UserApi {
             return Result.success(null);
         }
         InternalUserDTO dto = new InternalUserDTO();
+        BeanUtils.copyProperties(user, dto);
+        return Result.success(dto);
+    }
+
+    /**
+     * 查询当前登录用户信息（前端登录后获取角色）
+     */
+    @GetMapping("/user/me")
+    public Result<UserDTO> me() {
+        if (!StpUtil.isLogin()) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED);
+        }
+        User user = userMapper.selectById(StpUtil.getLoginIdAsLong());
+        if (user == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        UserDTO dto = new UserDTO();
         BeanUtils.copyProperties(user, dto);
         return Result.success(dto);
     }

@@ -170,6 +170,12 @@ PowerShell 中不要使用 $PID 保存业务数据，它是系统只读变量。
 | GET | /notification/unread-count | 是 | 查询未读数量 |
 | PUT | /notification/{id}/read | 是 | 标记通知已读 |
 
+### 4.6 用户
+
+| 方法 | 路径 | 登录 | 功能 |
+| --- | --- | --- | --- |
+| GET | /user/me | 是 | 查询当前登录用户信息 |
+
 ## 5. 认证接口
 
 ### 5.1 发送验证码
@@ -269,6 +275,39 @@ POST /auth/login
 ~~~
 
 账号不存在或密码错误时返回 code 500，message 为“账号或密码错误”。
+
+### 5.4 查询当前用户
+
+GET /user/me
+
+由 user-service 提供，需要登录（请求头携带 `token`）。前端登录成功后调用它获取用户角色（type），据此跳转求职者端或招聘方端。
+
+成功时 data 为当前用户信息：
+
+~~~json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "id": 1001,
+    "phone": "13800000001",
+    "nickname": "张同学",
+    "type": 1,
+    "status": 1,
+    "createTime": "2026-09-30 10:00:00"
+  }
+}
+~~~
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| id | long | 用户 ID |
+| phone | string | 手机号 |
+| nickname | string | 昵称 |
+| type | integer | 1 求职者，2 招聘方 |
+| status | integer | 1 正常，0 禁用 |
+
+未登录或 token 失效时返回 code 401。
 
 ## 6. 职位接口
 
