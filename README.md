@@ -49,13 +49,7 @@ ai      → AI 服务（简历解析 / 职位匹配 / 模拟面试 / 智能问�
 - 向量语义匹配替代传统关键词搜索，无需 Elasticsearch
 - WebSocket 实时聊天 + 未读消息计数 + 可靠投递
 
-## 开发进度
 
-- [ ] 工程骨架（Gateway + Nacos + auth + user）
-- [ ] 核心业务（resume + position + delivery）
-- [ ] 异步与缓存（MQ 通知 + Redis 缓存/热度/Geo）
-- [ ] 实时聊天（WebSocket + MQ）
-- [ ] AI 集成（简历解析 / 匹配 / 模拟面试）
 
 ## 目录结构
 
